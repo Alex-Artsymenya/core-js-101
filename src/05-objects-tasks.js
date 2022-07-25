@@ -20,10 +20,11 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.width * this.height;
 }
-
 
 /**
  * Returns the JSON representation of specified object
@@ -35,10 +36,9 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
-
 
 /**
  * Returns the object of specified type from JSON representation
@@ -51,10 +51,11 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const result = Object.create(proto);
+  Object.assign(result, JSON.parse(json));
+  return result;
 }
-
 
 /**
  * Css selectors builder
@@ -111,35 +112,128 @@ function fromJSON(/* proto, json */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  path: [],
+  string: '',
+
+  element(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    if (this.path.includes('element')) {
+      throw new Error(
+        // eslint-disable-next-line comma-dangle
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    res.path = [...this.path, 'element'];
+    res.string += value;
+
+    res.checkOrder();
+    return res;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    if (this.path.includes('id')) {
+      throw new Error(
+        // eslint-disable-next-line comma-dangle
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    res.path = [...this.path, 'id'];
+    res.string += `#${value}`;
+
+    res.checkOrder();
+    return res;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    res.path = [...this.path, 'class'];
+    res.string += `.${value}`;
+
+    res.checkOrder();
+    return res;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    res.path = [...this.path, 'attr'];
+    res.string += `[${value}]`;
+
+    res.checkOrder();
+    return res;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    res.path = [...this.path, 'pseudoClass'];
+    res.string += `:${value}`;
+
+    res.checkOrder();
+    return res;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    if (this.path.includes('pseudoElement')) {
+      throw new Error(
+        // eslint-disable-next-line comma-dangle
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    res.path = [...this.path, 'pseudoElement'];
+    res.string += `::${value}`;
+
+    res.checkOrder();
+    return res;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  checkOrder() {
+    const order = [
+      'element',
+      'id',
+      'class',
+      'attr',
+      'pseudoClass',
+      'pseudoElement',
+    ];
+
+    const keys = this.path.map((el) => order.indexOf(el));
+
+    for (let i = 1; i < keys.length; i += 1) {
+      if (keys[i] < keys[i - 1]) {
+        throw new Error(
+          // eslint-disable-next-line comma-dangle
+          'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+        );
+      }
+    }
+  },
+
+  combine(selector1, combinator, selector2) {
+    const res = Object.create(cssSelectorBuilder);
+    Object.assign(res, this);
+
+    res.string = `${this.string}${selector1.string} ${combinator} ${selector2.string}`;
+
+    return res;
+  },
+
+  stringify() {
+    return this.string;
   },
 };
-
 
 module.exports = {
   Rectangle,
